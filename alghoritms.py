@@ -105,7 +105,7 @@ class Parent:
         else:
             return False
 
-
+print("tets")
 class BruteForce(Parent):
     @classmethod
     def start(cls, board):
