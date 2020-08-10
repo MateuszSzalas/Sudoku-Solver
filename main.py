@@ -1,4 +1,4 @@
-from alghoritms import BruteForce, RandomSolver, SmartSolver
+from algorithms import BruteForce, RandomSolver, SmartSolver
 import time
 # 0,001
 #sample = "000004670009200801007613049050100284010000396496800050300061020085400060900078000"
@@ -51,7 +51,7 @@ class Board:
         self.board = BruteForce.start(board=self.board)
 
     def less_brutal_solution(self):
-        self.board = SmartSolver.create_markup(self.board)
+        self.board = SmartSolver.start(self.board)
     def random_solution(self):
         self.board = RandomSolver.randemonium(self.board)
 
