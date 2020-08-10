@@ -291,10 +291,9 @@ class SmartSolver(Parent):
         if len(cls.unchangable) == 81:
             return cls.board
 
-        print(cls.squares)
         cls.check_row()
         cls.check_col()
-        cls.check_square()
+        #cls.check_square()
 
         return cls.board
     @classmethod
@@ -318,7 +317,7 @@ class SmartSolver(Parent):
                     cls.board[position] = value
                     cls.unchangable.add(position)
                     cls.update(value, *cls.coordinates_detect(position))
-
+## UPDATE MARKUP AFTER ADD NEW VALUE
     @classmethod
     def check_col(cls):
         """search for unique possible value in every cols markup"""
@@ -328,13 +327,16 @@ class SmartSolver(Parent):
             where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
             for cell in range(9):
                 if pos not in cls.unchangable:
+                    print(pos, cls.markup[pos])
                     for element in cls.markup[pos]:
                         if element not in unique:
                             unique.add(element)
                             where[element] = pos
                         else:
                             where[element] = -1
+
                 pos += 9
+            print(where)
             for value, position in where.items():
                 if position != -1:
                     cls.board[position] = value
@@ -345,25 +347,31 @@ class SmartSolver(Parent):
     @classmethod
     def check_square(cls):
         """search for unique possible value in every squares markup"""
-        pos = 0
-        for row in range(9):
-            unique = set()  # values uniqe for the row
-            where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
-            for cell in range(9):
-                if pos not in cls.unchangable:
-                    for element in cls.markup[pos]:
-                        if element not in unique:
-                            unique.add(element)
-                            where[element] = pos
-                        else:
-                            where[element] = -1
-                pos += 9
-            for value, position in where.items():
-                if position != -1:
-                    cls.board[position] = value
-                    cls.unchangable.add(position)
-                    cls.update(value, *cls.coordinates_detect(position))
-            pos -= 80
+        square_counter = 0
+        unique = set()  # values uniqe for the row
+        where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
+        print(sorted(cls.squares.items(), key=lambda x: x[1]))
+        for pos, square in sorted(cls.squares.items(), key=lambda x: x[1]):
+            print(pos, square_counter)
+            if pos not in cls.unchangable:
+                for element in cls.markup[pos]:
+                    if element not in unique:
+                        unique.add(element)
+                        where[element] = pos
+                    else:
+                        where[element] = -1
+            if square_counter == 8:
+                print(where)
+                for value, position in where.items():
+                    if position != -1:
+                        cls.board[position] = value
+                        cls.unchangable.add(position)
+                        cls.update(value, *cls.coordinates_detect(position))
+                square_counter = 0
+                unique = set()
+                where = {}
+            else:
+                square_counter += 1
 
     @classmethod
     def create_markup(cls):
