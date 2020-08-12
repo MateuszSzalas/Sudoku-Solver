@@ -1,4 +1,4 @@
-from algorithms import BruteForce, RandomSolver, SmartSolver
+from algorithms import BruteForce, SmartSolver
 import time
 # 0,001
 #sample = "000004670009200801007613049050100284010000396496800050300061020085400060900078000"
@@ -52,8 +52,6 @@ class Board:
 
     def less_brutal_solution(self):
         self.board = SmartSolver.start(self.board)
-    def random_solution(self):
-        self.board = RandomSolver.randemonium(self.board)
 
     def smart_solution(self):
         """Implementation of James Crook alghoritm"""
@@ -65,7 +63,6 @@ if __name__ == "__main__":
     input("Press any key to start")
     start = time.time()
     #a.brutal_solution()
-    #a.random_solution()
     a.less_brutal_solution()
     print(SmartSolver.markup)
     stop = time.time()
