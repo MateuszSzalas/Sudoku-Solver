@@ -1,6 +1,3 @@
-from random import randint
-
-
 class Parent:
     """brute force alghoritm for solving sudoku
     hash_board: dict which assign TBD
@@ -110,6 +107,9 @@ class Parent:
 
 
 class BruteForce(Parent):
+    """Bruteforce with backtracking. Check every state of board until find correct one.
+    Each cell is tested for a valid number, moving "back" when there is a violation, and moving forward again until
+    the puzzle is solved."""
     @classmethod
     def start(cls, board):
         cls.init(board)
@@ -156,8 +156,12 @@ class BruteForce(Parent):
 
 
 class SmartSolver(Parent):
+    """Fill part of the board (or whole in easier puzzles) using James Crook Occupancy theorem and fill rest using
+        bruteforce.
+        markup: possible values of cell - dict:
+            key = position of empty cell, value = set of possible digits in that cell
+    """
     markup = {}
-    board = None
     again = False
 
     @classmethod
@@ -170,12 +174,14 @@ class SmartSolver(Parent):
         while True:
             cls.again = False
             cls.check_row()
-            cls.check_row()
-            #cls.check_col()
-            #cls.check_square()
+            cls.check_col()
+            cls.check_square()
 
             if cls.again is False:
                break
+
+        if len(cls.unchangable) != 81:
+            cls.board = BruteForce.start(cls.board)
 
         return cls.board
 
