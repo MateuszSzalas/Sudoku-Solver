@@ -155,134 +155,10 @@ class BruteForce(Parent):
         return board
 
 
-class BruteForceWithMarkup(BruteForce):
-    markup = {}
-
-    @classmethod
-    def start(cls, board):
-        cls.init(board)
-        pos = 0
-        empty = False
-
-        while True:
-            while True:
-                if pos in cls.unchangable and empty is False:
-                    pos += 1
-                elif pos in cls.unchangable and empty is True:
-                    pos -= 1
-                elif empty is True:
-                    row, col, square = cls.coordinates_detect(pos)
-
-                    cls.remove(board[pos], row, col, square)
-
-                    while True:
-                        board[pos] += 1
-                        if board[pos] in cls.markup[pos] or board[pos] >= 9:
-                            break
-
-                    break
-                else:
-                    if pos == 81:
-                        break
-                    row, col, square = cls.coordinates_detect(pos)
-
-                    empty = True
-                    board[pos] = 1
-                    break
-
-            if pos == 81:
-                break
-
-            for _ in range(10 - board[pos]):
-                if cls.check_move(board[pos], row, col, square):
-                    cls.update(board[pos], row, col, square)
-                    pos += 1
-                    empty = False
-                    break
-                else:
-                    while True:
-                        board[pos] += 1
-                        if board[pos] in cls.markup[pos] or board[pos] >= 9:
-                            break
-            else:
-                # if not vaild number at pos
-                board[pos] = 0
-                pos -= 1
-        return board
-
-    @classmethod
-    def fill_obvious(cls, board):
-        """ If only 1 value is valid set cell to this value, update unchangable cells set and return
-        new board"""
-        added = True
-        cls.init(board)
-        while added is True:
-            for pos, cell in enumerate(board):
-                if cell == 0:
-                    row, col, square = cls.coordinates_detect(pos)
-                    vaild_values = []
-                    for i in range(1, 10):
-                        if cls.check_move(i, row, col, square) is True:
-                            vaild_values.append(i)
-
-                    if len(vaild_values) == 1:
-                        board[pos] = vaild_values[0]
-                        cls.unchangable.add(pos)
-                        print(cls.unchangable)
-                    else:
-                        added = False
-
-        return board
-
-    @classmethod
-    def create_markup(cls, board):
-        """fill cls.markup dict: key = position of empty cell (0 - 80), value = set of possible values at this position
-        based on filled cells. If only 1 value is valid set cell to this value, update unchangable cells set and return
-        new board
-        """
-        for pos, cell in enumerate(board):
-            if cell == 0:
-                row, col, square = cls.coordinates_detect(pos)
-                vaild_values = []
-                for i in range(1, 10):
-                    if cls.check_move(i, row, col, square) is True:
-                        vaild_values.append(i)
-
-                if len(vaild_values) == 1:
-                    board[pos] = vaild_values[0]
-                    cls.unchangable.add(pos)
-                else:
-                    cls.markup[pos] = set(vaild_values)
-        return board
-
-
-class RandomSolver(Parent):
-    """randomly assign values to empty cells until puzzle is solved"""
-    @classmethod
-    def randemonium(cls, board):
-        cls.init(board)
-        # repeat until solved
-        while True:
-            for pos, cell in enumerate(board):
-                if pos in cls.unchangable:
-                    continue
-                board[pos] = randint(1, 9)
-            pos = 0
-            stop = False
-
-            while True:
-                row, col, square = cls.coordinates_detect(pos)
-                if cls.check_move(board[pos], row, col, square) is False:
-                    break
-                pos += 1
-            else:
-                break
-        return board
-
-
 class SmartSolver(Parent):
     markup = {}
     board = None
+    again = False
 
     @classmethod
     def start(cls, board):
@@ -291,11 +167,20 @@ class SmartSolver(Parent):
         if len(cls.unchangable) == 81:
             return cls.board
 
-        cls.check_row()
-        cls.check_col()
-        #cls.check_square()
+        while True:
+            cls.again = False
+            cls.check_row()
+            cls.check_row()
+            #cls.check_col()
+            #cls.check_square()
+
+            if cls.again is False:
+               break
 
         return cls.board
+
+
+
     @classmethod
     def check_row(cls):
         """search for unique possible value in every rows markup"""
@@ -312,12 +197,15 @@ class SmartSolver(Parent):
                         else:
                             where[element] = -1
                 pos += 1
+
             for value, position in where.items():
                 if position != -1:
                     cls.board[position] = value
                     cls.unchangable.add(position)
                     cls.update(value, *cls.coordinates_detect(position))
-## UPDATE MARKUP AFTER ADD NEW VALUE
+                    cls.again = True
+            cls.update_markup()
+
     @classmethod
     def check_col(cls):
         """search for unique possible value in every cols markup"""
@@ -327,7 +215,6 @@ class SmartSolver(Parent):
             where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
             for cell in range(9):
                 if pos not in cls.unchangable:
-                    print(pos, cls.markup[pos])
                     for element in cls.markup[pos]:
                         if element not in unique:
                             unique.add(element)
@@ -336,13 +223,14 @@ class SmartSolver(Parent):
                             where[element] = -1
 
                 pos += 9
-            print(where)
             for value, position in where.items():
                 if position != -1:
                     cls.board[position] = value
                     cls.unchangable.add(position)
                     cls.update(value, *cls.coordinates_detect(position))
+                    cls.again = True
             pos -= 80
+            cls.update_markup()
 
     @classmethod
     def check_square(cls):
@@ -350,9 +238,7 @@ class SmartSolver(Parent):
         square_counter = 0
         unique = set()  # values uniqe for the row
         where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
-        print(sorted(cls.squares.items(), key=lambda x: x[1]))
-        for pos, square in sorted(cls.squares.items(), key=lambda x: x[1]):
-            print(pos, square_counter)
+        for pos, square in sorted(cls.squares.items(), key=lambda x: x[1]):  # zmienic
             if pos not in cls.unchangable:
                 for element in cls.markup[pos]:
                     if element not in unique:
@@ -361,12 +247,13 @@ class SmartSolver(Parent):
                     else:
                         where[element] = -1
             if square_counter == 8:
-                print(where)
                 for value, position in where.items():
                     if position != -1:
                         cls.board[position] = value
                         cls.unchangable.add(position)
                         cls.update(value, *cls.coordinates_detect(position))
+                        cls.again = True
+                cls.update_markup()
                 square_counter = 0
                 unique = set()
                 where = {}
@@ -381,6 +268,7 @@ class SmartSolver(Parent):
         """
 
         while True:
+            cls.markup = {}
             any_cell_changed = False
             for pos, cell in enumerate(cls.board):
 
@@ -388,6 +276,35 @@ class SmartSolver(Parent):
                     row, col, square = cls.coordinates_detect(pos)
                     vaild_values = []
                     for i in range(1, 10):
+                        if cls.check_move(i, row, col, square) is True:
+                            vaild_values.append(i)
+                    if len(vaild_values) == 1:
+                        cls.board[pos] = vaild_values[0]
+                        cls.unchangable.add(pos)
+                        any_cell_changed = True
+                        cls.update(cls.board[pos], row, col, square)
+
+                    else:
+                        cls.markup[pos] = set(vaild_values)
+
+            if any_cell_changed is False:
+                break
+
+
+    @classmethod
+    def update_markup(cls):
+        """update cls.markup after inserting value to cell. Check only values for actual cell markup.
+         If only 1 value is valid set cell to this value, update unchangable cells set and set
+         cls.board to new state"""
+        temp_markup = cls.markup
+        while True:
+            cls.markup = {}
+            any_cell_changed = False
+            for pos, cell in enumerate(cls.board):
+                if pos not in cls.unchangable:
+                    row, col, square = cls.coordinates_detect(pos)
+                    vaild_values = []
+                    for i in temp_markup[pos]:
                         if cls.check_move(i, row, col, square) is True:
                             vaild_values.append(i)
 
@@ -402,4 +319,3 @@ class SmartSolver(Parent):
 
             if any_cell_changed is False:
                 break
-
