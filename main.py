@@ -9,27 +9,25 @@ sample = "0008010000000000435000000000000708000000001000200300006000000750034000
 # 0,01
 #sample = "080701030409000000050060418700009000800610500035000029060407090100008004020050073"
 # 0,4
-sample = "400500602000000000061007009000100063150000000807902000000400057500210000000003200"
-# lb 0 b
-#sample = "600079032000060500209008700906305001850000300473001250042680900000013427090200600"
-
+#sample = "400500602000000000061007009000100063150000000807902000000400057500210000000003200"
+# lb 0 b 390
+sample = "000000000000003085001020000000507000004000100090000000500000073002010000000040009"
 
 class Board:
-    """stores board state and methods"""
+    """stores board state and methods
+    board: (list) Representation of the board. List of 81 ints, one for each cell, starting in left top corner then
+    going right in row and go to next row.  """
     board = None
 
-    def __init__(self):
+    def __init__(self, board_sequence):
         """Data input for console version.
-        Input format: left to right, line by line number sequence where 0 is empty cell"""
-
-        # board_sequence = input("Insert board state (left to right, line by line in 1 line:\n")
-        board_sequence = sample
+        Input format: left to right, line by line number sequence where 0 is empty cell
+        transform input string into list of ints"""
 
         self.board = [int(char) for char in board_sequence]
-        print(self.board)
 
     def draw(self):
-        """Draw current state of board"""
+        """Draw current state of board in human-friendly form"""
 
         index = 0
         print("-" * 25)
@@ -48,23 +46,53 @@ class Board:
             print("-" * 25)
 
     def brutal_solution(self):
-        self.board = BruteForce.start(board=self.board)
+        """Bruteforce with backtracking. Check every state of board until find correct one"""
+        self.board = BruteForce.start(self.board)
 
     def less_brutal_solution(self):
+        """Fill part of the board (or whole in easier puzzles) using James Crook Occupancy theorem and fill rest using
+        bruteforce"""
         self.board = SmartSolver.start(self.board)
 
     def smart_solution(self):
-        """Implementation of James Crook alghoritm"""
+        """Implementation of James Crook algorithm. TBD later"""
         pass
 
-if __name__ == "__main__":
-    a = Board()
-    a.draw()
-    input("Press any key to start")
-    start = time.time()
-    #a.brutal_solution()
-    a.less_brutal_solution()
-    print(SmartSolver.markup)
+
+def start_here():
+    """Start program"""
+    # input from console or sample for testing
+    # board_sequence = input("Insert board state (left to right, line by line in 1 line:\n")
+    board_sequence = sample
+
+    # initiation of Board instance and draw initial state
+    board = Board(board_sequence)
+    board.draw()
+
+    # show menu and select algorithm
+    while True:
+        x = input("1. Brutal solution\n2. Less brutal solution\nChoose solution: ")
+
+        if x != "1" and x != "2":
+            print("unknown command. Try again\n")
+        else:
+            break
+
+    #input("Press any key to start")
+    print("Working...")
+
+    if x == "1":
+        start = time.time()
+        board.brutal_solution()
+    elif x == "2":
+        start = time.time()
+        board.less_brutal_solution()
+
     stop = time.time()
-    a.draw()
-    print(stop - start)
+    board.draw()
+    print(f"complete in {stop - start} sec")
+
+
+if __name__ == "__main__":
+    start_here()
+
