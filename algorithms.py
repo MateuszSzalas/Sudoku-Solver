@@ -1,17 +1,31 @@
 class Parent:
-    """brute force alghoritm for solving sudoku
-    hash_board: dict which assign TBD
+    """Parent class with methods and arguments common for all algorithms
+    board_map:
+        dict: key = (int) identificator of row (1x), column (2x) and square (3x) where x is number of this row, col or square
+              value = (set of ints) set with all numbers in that row, col or square
+    squares - mapping positions with squares:
+        list of tuples: [(pos, square), ...] sorted by squares
+    pos_map - math position with its row, collumn and square
+        dict: key = (int) position
+              value = [row, column, square] identificators same as in board_map
+    unchangable:
+        set: set which contain all possitions with fixed board numbers (clues or values found by algorithm)
+    board:
+        list: list representation of current board state (list index = position of cell)
     """
-    hash_board = None
-    squares = {}  # dict: key = position index, value = square number
+    board_map = None
+    squares = {}  # list of tuples: [(pos, square), ...] sorted by squares
+    pos_map = {}  # dict: key = pos, vale = [row, col, sqare]
     unchangable = None  # set of indexes of unchangable cells
-    board = None
+    board = None  # current board. List of int representation of every cell, 0 = empty cell
 
     @classmethod
     def init(cls, board):
         """initialization"""
         cls.board = board
-        cls.hash_board = {
+
+        # board_map creation
+        cls.board_map = {
             11: {board[i] for i in range(9)},
             12: {board[i] for i in range(9, 18)},
             13: {board[i] for i in range(18, 27)},
@@ -44,6 +58,7 @@ class Parent:
         }
 
         # preperation of squares hash map
+        squares = {}
         start1, stop1 = 0, 3
         start2, stop2 = 9, 12
         start3, stop3 = 18, 21
@@ -53,7 +68,7 @@ class Parent:
             for _ in range(3):
 
                 for i, j, k in zip(range(start1, stop1), range(start2, stop2), range(start3, stop3)):
-                    cls.squares[i], cls.squares[j], cls.squares[k] = 30 + index, 30 + index, 30 + index
+                    squares[i], squares[j], squares[k] = 30 + index, 30 + index, 30 + index
                 index += 1
                 start1, stop1 = start1 + 3, stop1 + 3
                 start2, stop2 = start2 + 3, stop2 + 3
@@ -62,44 +77,50 @@ class Parent:
             start1, stop1 = start1 + 18, stop1 + 18
             start2, stop2 = start2 + 18, stop2 + 18
             start3, stop3 = start3 + 18, stop3 + 18
+        cls.squares = sorted(squares.items(), key=lambda x: x[1])
+
+        # mapping
+        col_counter = 1
+        row_counter = 1
+        pos = 0
+        for _ in range(9):
+            for _ in range(9):
+                cls.pos_map[pos] = []
+                cls.pos_map[pos].append(10 + row_counter)
+                cls.pos_map[pos].append(20 + col_counter)
+                cls.pos_map[pos].append(squares[pos])
+                col_counter += 1
+                pos += 1
+            row_counter += 1
+            col_counter = 1
 
         # set of unchangable positions
         cls.unchangable = {i for i in range(81) if board[i] != 0}
 
     @classmethod
-    def coordinates_detect(cls, pos):
-        """calculate position of cell. Return row, column and square"""
-        row = pos // 9 + 1
-        col = 1 + int(pos / 0.9 % 10)
-        square = cls.squares[pos]
-
-        return row, col, square
-
-    @classmethod
-    def remove(cls, value, row, col, square):
+    def remove(cls, value, pos):
         """remove value from hashtable"""
 
-        cls.hash_board[10 + row].remove(value)
-        cls.hash_board[20 + col].remove(value)
-        cls.hash_board[square].remove(value)
+        cls.board_map[cls.pos_map[pos][0]].remove(value)
+        cls.board_map[cls.pos_map[pos][1]].remove(value)
+        cls.board_map[cls.pos_map[pos][2]].remove(value)
 
     @classmethod
-    def update(cls, value, row, col, square):
+    def update(cls, value, pos):
         """add value to hashtable"""
 
-        cls.hash_board[10 + row].add(value)
-        cls.hash_board[20 + col].add(value)
-        cls.hash_board[square].add(value)
+        cls.board_map[cls.pos_map[pos][0]].add(value)
+        cls.board_map[cls.pos_map[pos][1]].add(value)
+        cls.board_map[cls.pos_map[pos][2]].add(value)
 
     @classmethod
-    def check_move(cls, value, row, col, square):
+    def check_move(cls, value, pos):
         """Return True if move is valid"""
 
         if (
-                value not in cls.hash_board[10 + row]
-                and value not in cls.hash_board[20 + col]
-                and value not in cls.hash_board[square]
-        ):
+                value not in cls.board_map[cls.pos_map[pos][0]]
+                and value not in cls.board_map[cls.pos_map[pos][1]]
+                and value not in cls.board_map[cls.pos_map[pos][2]]):
 
             return True
         else:
@@ -112,7 +133,8 @@ class BruteForce(Parent):
     the puzzle is solved."""
     @classmethod
     def start(cls, board):
-        cls.init(board)
+        if cls.board is None:
+            cls.init(board)
         pos = 0
         empty = False
 
@@ -123,16 +145,12 @@ class BruteForce(Parent):
                 elif pos in cls.unchangable and empty is True:
                     pos -= 1
                 elif empty is True:
-                    row, col, square = cls.coordinates_detect(pos)
-
-                    cls.remove(board[pos], row, col, square)
+                    cls.remove(board[pos], pos)
                     board[pos] += 1
                     break
                 else:
                     if pos == 81:
                         break
-                    row, col, square = cls.coordinates_detect(pos)
-
                     empty = True
                     board[pos] = 1
                     break
@@ -141,8 +159,8 @@ class BruteForce(Parent):
                 break
 
             for _ in range(10 - board[pos]):
-                if cls.check_move(board[pos], row, col, square):
-                    cls.update(board[pos], row, col, square)
+                if cls.check_move(board[pos], pos):
+                    cls.update(board[pos], pos)
                     pos += 1
                     empty = False
                     break
@@ -185,8 +203,6 @@ class SmartSolver(Parent):
 
         return cls.board
 
-
-
     @classmethod
     def check_row(cls):
         """search for unique possible value in every rows markup"""
@@ -208,7 +224,7 @@ class SmartSolver(Parent):
                 if position != -1:
                     cls.board[position] = value
                     cls.unchangable.add(position)
-                    cls.update(value, *cls.coordinates_detect(position))
+                    cls.update(value, position)
                     cls.again = True
             cls.update_markup()
 
@@ -233,7 +249,7 @@ class SmartSolver(Parent):
                 if position != -1:
                     cls.board[position] = value
                     cls.unchangable.add(position)
-                    cls.update(value, *cls.coordinates_detect(position))
+                    cls.update(value, position)
                     cls.again = True
             pos -= 80
             cls.update_markup()
@@ -244,7 +260,7 @@ class SmartSolver(Parent):
         square_counter = 0
         unique = set()  # values uniqe for the row
         where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
-        for pos, square in sorted(cls.squares.items(), key=lambda x: x[1]):  # zmienic
+        for pos, square in cls.squares:
             if pos not in cls.unchangable:
                 for element in cls.markup[pos]:
                     if element not in unique:
@@ -257,7 +273,7 @@ class SmartSolver(Parent):
                     if position != -1:
                         cls.board[position] = value
                         cls.unchangable.add(position)
-                        cls.update(value, *cls.coordinates_detect(position))
+                        cls.update(value, position)
                         cls.again = True
                 cls.update_markup()
                 square_counter = 0
@@ -274,28 +290,25 @@ class SmartSolver(Parent):
         """
 
         while True:
-            cls.markup = {}
             any_cell_changed = False
             for pos, cell in enumerate(cls.board):
 
                 if cell == 0:
-                    row, col, square = cls.coordinates_detect(pos)
                     vaild_values = []
                     for i in range(1, 10):
-                        if cls.check_move(i, row, col, square) is True:
+                        if cls.check_move(i, pos) is True:
                             vaild_values.append(i)
                     if len(vaild_values) == 1:
                         cls.board[pos] = vaild_values[0]
                         cls.unchangable.add(pos)
                         any_cell_changed = True
-                        cls.update(cls.board[pos], row, col, square)
+                        cls.update(cls.board[pos], pos)
 
                     else:
                         cls.markup[pos] = set(vaild_values)
 
             if any_cell_changed is False:
                 break
-
 
     @classmethod
     def update_markup(cls):
@@ -304,21 +317,19 @@ class SmartSolver(Parent):
          cls.board to new state"""
         temp_markup = cls.markup
         while True:
-            cls.markup = {}
             any_cell_changed = False
             for pos, cell in enumerate(cls.board):
                 if pos not in cls.unchangable:
-                    row, col, square = cls.coordinates_detect(pos)
                     vaild_values = []
                     for i in temp_markup[pos]:
-                        if cls.check_move(i, row, col, square) is True:
+                        if cls.check_move(i, pos) is True:
                             vaild_values.append(i)
 
                     if len(vaild_values) == 1:
                         cls.board[pos] = vaild_values[0]
                         cls.unchangable.add(pos)
                         any_cell_changed = True
-                        cls.update(cls.board[pos], row, col, square)
+                        cls.update(cls.board[pos], pos)
 
                     else:
                         cls.markup[pos] = set(vaild_values)
