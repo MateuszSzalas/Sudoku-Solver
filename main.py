@@ -6,7 +6,7 @@ import time
 # Easy
 # sample = "000004670009200801007613049050100284010000396496800050300061020085400060900078000"
 # Hard. Slowly solved by bruteforce but fast by smarter alghorithm
-# sample = "000801000000000043500000000000070800000000100020030000600000075003400000000200600"
+sample = "000801000000000043500000000000070800000000100020030000600000075003400000000200600"
 # Hard, designed against bruteforce. Very slow solution using bruteforce but fast solved using smarter algorithm
 # sample = "000000000000003085001020000000507000004000100090000000500000073002010000000040009"
 
@@ -43,12 +43,16 @@ class Board:
 
     def brutal_solution(self):
         """Bruteforce with backtracking. Check every state of board until find correct one"""
-        self.board = BruteForce.start(self.board)
+        solver = BruteForce(self.board)
+        solver.start()
+        self.board = solver.board
 
     def less_brutal_solution(self):
         """Fill part of the board (or whole in easier puzzles) using James Crook Occupancy theorem and fill rest using
         bruteforce"""
-        self.board = SmartSolver.start(self.board)
+        solver = SmartSolver(self.board)
+        solver.start()
+        self.board = solver.board
 
     def smart_solution(self):
         """Implementation of James Crook algorithm. TBD later"""
@@ -115,8 +119,8 @@ def input_validation(board_sequence):
 def start_here():
     """Start program"""
     # input from console or sample
-    board_sequence = input_from_console()
-    # board_sequence = sample
+    #board_sequence = input_from_console()
+    board_sequence = sample
 
     # initiation of Board instance and draw initial state
     board = Board(board_sequence)
