@@ -4,11 +4,12 @@ import time
 
 # Examples
 # Easy
-# sample = "000004670009200801007613049050100284010000396496800050300061020085400060900078000"
+#sample = "000004670009200801007613049050100284010000396496800050300061020085400060900078000"
 # Hard. Slowly solved by bruteforce but fast by smarter alghorithm
-sample = "000801000000000043500000000000070800000000100020030000600000075003400000000200600"
+#sample = "000801000000000043500000000000070800000000100020030000600000075003400000000200600"
 # Hard, designed against bruteforce. Very slow solution using bruteforce but fast solved using smarter algorithm
-# sample = "000000000000003085001020000000507000004000100090000000500000073002010000000040009"
+#sample = "000000000000003085001020000000507000004000100090000000500000073002010000000040009"
+#sample = "000050004040200306002000000300060400009080000001004020000501070000040001600000009"
 
 
 class Board:
@@ -44,19 +45,20 @@ class Board:
     def brutal_solution(self):
         """Bruteforce with backtracking. Check every state of board until find correct one"""
         solver = BruteForce(self.board)
-        solver.start()
-        self.board = solver.board
+        self.board = solver.start()
 
     def less_brutal_solution(self):
-        """Fill part of the board (or whole in easier puzzles) using James Crook Occupancy theorem and fill rest using
+        """Fill part of the board (or whole in easier puzzles) using James Crook algorithm and fill rest using
         bruteforce"""
         solver = SmartSolver(self.board)
-        solver.start()
-        self.board = solver.board
+        self.board = solver.less_brutal()
 
     def smart_solution(self):
-        """Implementation of James Crook algorithm. TBD later"""
-        pass
+        """Implementation of James Crook algorithm."""
+        solver = SmartSolver(self.board)
+        self.board = solver.smart_solution()
+        print(solver.c)
+
 
 
 def input_from_console():
@@ -119,8 +121,8 @@ def input_validation(board_sequence):
 def start_here():
     """Start program"""
     # input from console or sample
-    #board_sequence = input_from_console()
-    board_sequence = sample
+    board_sequence = input_from_console()
+    #board_sequence = sample
 
     # initiation of Board instance and draw initial state
     board = Board(board_sequence)
@@ -128,9 +130,9 @@ def start_here():
 
     # show menu and select algorithm
     while True:
-        x = input("1. Brutal solution\n2. Less brutal solution\nChoose solution: ")
+        x = input("1. Brutal solution\n2. Less brutal solution\n3. Smart solution\nChoose solution: ")
 
-        if x != "1" and x != "2":
+        if x != "1" and x != "2" and x != "3":
             print("unknown command. Try again\n")
         else:
             break
@@ -144,6 +146,10 @@ def start_here():
     elif x == "2":
         start = time.time()
         board.less_brutal_solution()
+    elif x == "3":
+        start = time.time()
+        board.smart_solution()
+
 
     stop = time.time()
     board.draw()
