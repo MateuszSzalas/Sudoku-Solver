@@ -195,7 +195,7 @@ class SmartSolver(Parent):
     def less_brutal(self):
         """Fill part of the board (or whole in easier puzzles) using James Crook algorithm and fill rest using
         bruteforce"""
-        self.create_markup()
+
         if len(self.unchangable) == 81:
             return self.board
 
@@ -221,13 +221,16 @@ class SmartSolver(Parent):
 
         return self.board
 
-    def smart_solution(self, pos=-1):
+    def smart_solution(self):
         """complete whole puzzle using James Crook algorithm"""
+        pos = 0
+        flag = False
         # if board is full return it
         if len(self.unchangable) == 81:
             return self.board
 
         # check for obvious cells until there arent any
+
         while True:
             self.again = False
             self.checks()
@@ -235,56 +238,101 @@ class SmartSolver(Parent):
             if self.again is False:
                 break
 
-        while len(self.unchangable) < 81:
-            # find first empty cell
-            for i, value in enumerate(self.board[pos+1:], pos+1):
-                if value == 0:
-                    self.c += 1
-                    pos = i
-                    break
+        if len(self.unchangable) == 81:
+            return self.board
 
-            # set of temporary variables for easy restoration of previous board state
-            temp_board = copy(self.board)
-            temp_unch = copy(self.unchangable)
-            temp_boardmap = deepcopy(self.board_map)
+        temp_board = copy(self.board)
+        temp_unch = copy(self.unchangable)
+        temp_boardmap = deepcopy(self.board_map)
 
-            # get value from cells markup and set cell to it
-            for markup in self.markup[pos]:
-                self.board[pos] = markup
-                self.unchangable.add(pos)
-                self.create_markup()
+        for i, value in enumerate(self.board):
+            if value == 0:
+                pos = i
+                break
 
-                # if after previous operation there are cell with no possible value revert changes and get another
-                # value from markup (next loop iteration)
+        for markup in self.markup[pos]:
+            self.board[pos] = markup
+            self.unchangable.add(pos)
+            self.update(markup, pos)
+            self.create_markup()
+
+            while True:
+                self.again = False
+                self.checks()
                 if not all(self.markup.values()):
-                    self.board[pos] = 0
-                    self.unchangable.remove(pos)
-                    self.create_markup()
-                    continue
-                self.update(markup, pos)
-
-                # check for obvious cells until there aren't any
-                while True:
-                    self.again = False
-                    self.checks()
-
-                    if self.again is False or not all(self.markup.values()):
-                        break
-
-                # if board is full break the loop
-                if len(self.unchangable) == 81:
+                    flag = False
                     break
-                # or revert changes and try another value from cells markup
-                else:
+                if self.again is False:
+                    flag = True
+                    break
 
+            if flag is True:
+                solver = SmartSolver(self.board)
+                self.board = solver.tests()
+                if len(solver.unchangable) == 81:
+                    self.unchangable = solver.unchangable
+                    return self.board
+                else:
                     self.board = copy(temp_board)
                     self.unchangable = copy(temp_unch)
                     self.board_map = deepcopy(temp_boardmap)
                     self.create_markup()
 
-            # if there is no solution go to next cell
+            else:
+                self.board = copy(temp_board)
+                self.unchangable = copy(temp_unch)
+                self.board_map = deepcopy(temp_boardmap)
+                self.create_markup()
+        return self.board
+
+    def tests(self):
+        pos = 0
+        if len(self.unchangable) == 81:
+            return self.board
+
+        temp_board = copy(self.board)
+        temp_unch = copy(self.unchangable)
+        temp_boardmap = deepcopy(self.board_map)
+
+        for i, value in enumerate(self.board):
+            if value == 0:
+                pos = i
+                break
+
+        for markup in self.markup[pos]:
+            self.board[pos] = markup
+            self.unchangable.add(pos)
+            self.update(markup, pos)
+            self.create_markup()
 
 
+            while True:
+                self.again = False
+                self.checks()
+                if not all(self.markup.values()):
+                    flag = False
+                    break
+                if self.again is False:
+                    flag = True
+                    break
+
+            if flag is True:
+                solver = SmartSolver(self.board)
+                self.board = solver.tests()
+                if len(solver.unchangable) == 81:
+                    self.unchangable = solver.unchangable
+                    return self.board
+                else:
+                    self.board = copy(temp_board)
+                    self.unchangable = copy(temp_unch)
+                    self.board_map = deepcopy(temp_boardmap)
+                    self.create_markup()
+
+            else:
+                self.board = copy(temp_board)
+                self.unchangable = copy(temp_unch)
+                self.board_map = deepcopy(temp_boardmap)
+                self.create_markup()
         return self.board
 
     def checks(self):
@@ -402,25 +450,16 @@ class SmartSolver(Parent):
         """update self.markup after inserting value to cell. Check only values for actual cell markup.
          If only 1 value is valid set cell to this value, update unchangable cells set and set
          self.board to new state"""
-        temp_markup = self.markup
         self.markup = {}
-        while True:
-            any_cell_changed = False
-            for pos, cell in enumerate(self.board):
-                if pos not in self.unchangable:
-                    vaild_values = []
-                    for i in temp_markup[pos]:
-                        if self.check_move(i, pos) is True:
-                            vaild_values.append(i)
 
-                    if len(vaild_values) == 1:
-                        self.board[pos] = vaild_values[0]
-                        self.unchangable.add(pos)
-                        any_cell_changed = True
-                        self.update(self.board[pos], pos)
+        for pos, cell in enumerate(self.board):
 
-                    else:
-                        self.markup[pos] = set(vaild_values)
+            if cell == 0:
+                vaild_values = []
+                for i in range(1, 10):
+                    if self.check_move(i, pos) is True:
+                        vaild_values.append(i)
 
-            if any_cell_changed is False:
-                break
+                    self.markup[pos] = set(vaild_values)
+
+
