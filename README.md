@@ -8,6 +8,7 @@
 * Take user input from console interface
 * Solve sudoku using bruteforce with backtracking
 * Partially solve sudoku using James Crook algorithm and finish it using bruteforce
+* Solve whole puzzle using James Crook algorithm
 
 To-do list:
 * GUI
