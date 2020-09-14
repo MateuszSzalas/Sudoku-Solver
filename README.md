@@ -7,8 +7,8 @@
 ## Features
 * Take user input from console interface
 * Solve sudoku using bruteforce with backtracking
-* Partially solve sudoku using James Crook algorithm and finish it using bruteforce
-* Solve whole puzzle using James Crook algorithm
+* Fill obvious cells (or whole board in easier puzzles) and finish it using bruteforce
+* Complete whole puzzle using "manual" algorithm developed by James Crook
 
 To-do list:
 * GUI
