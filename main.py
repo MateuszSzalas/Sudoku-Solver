@@ -56,8 +56,6 @@ class Board:
         """Implementation of James Crook algorithm."""
         solver = SmartSolver(self.board)
         self.board = solver.smart_solution()
-        print(solver.c)
-
 
 
 def input_from_console():
