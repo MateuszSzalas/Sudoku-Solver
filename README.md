@@ -6,9 +6,9 @@
 
 ## Features
 * Take user input from console interface
-* Solve sudoku using bruteforce with backtracking
-* Fill obvious cells (or whole board in easier puzzles) and finish it using bruteforce
-* Complete whole puzzle using "manual" algorithm developed by James Crook
+* Brutal solver: Solve sudoku using bruteforce with backtracking
+* Fast solver: Fill obvious cells (or whole board in easier puzzles) and finish it using bruteforce
+* Smart solver: Complete whole puzzle using "manual", human-like algorithm developed by James Crook.
 
 To-do list:
 * GUI
