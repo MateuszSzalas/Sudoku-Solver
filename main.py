@@ -150,7 +150,7 @@ def start_here():
 
     stop = time.time()
     board.draw()
-    print(f"complete in {stop - start} sec")
+    print(f"completed in {stop - start} sec")
 
 
 if __name__ == "__main__":
