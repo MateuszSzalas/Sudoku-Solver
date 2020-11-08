@@ -4,7 +4,7 @@ import time
 import typing
 
 
-# Examples
+# Examples. Take user input by uncomment line 148 and commend line 149 to take input from user
 # Easy
 #sample = "000004670009200801007613049050100284010000396496800050300061020085400060900078000"
 # Hard. Slowly solved by bruteforce but fast by smarter alghorithm
@@ -144,7 +144,7 @@ def input_validation(board_sequence: typing.AnyStr) -> bool:
 
 def start_here():
     """Start program"""
-    # input from console or sample
+    # input from console or sample. Uncomment line 148 and commend line 149 to take input from user
     # board_sequence = input_from_console()
     board_sequence = sample
 
