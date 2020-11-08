@@ -1,252 +1,383 @@
+from settings import Settings
 from copy import copy
 import pickle
+from collections import defaultdict
+from abc import ABC, abstractmethod
+from typing import Any, DefaultDict, Dict, List, Set, Tuple
 
 
-class Parent:
-    """Parent class with methods and arguments common for all algorithms
-    board_map:
-        dict: key = (int) id of row (1x), column (2x) and square (3x) where x is number of this row, col or square
-              value = (set of ints) set with all numbers in that row, col or square
-    squares - match positions with squares:
-        list of tuples: [(pos, square), ...] sorted by squares
-    pos_map - match position with its row, column and square
-        dict: key = (int) position
-              value = (list of int) [row, column, square] id same as in board_map
+class Interface(ABC):
+    """Base class with methods and arguments common for all algorithms
+    square_map:
+        dict: {(x, y): square_number, ... } - bind positions with square containing it
+    rows:
+        defaultdict: {row_number: {current_values_in_that_row}, ...} - current values in every row
+    columns:
+        defaultdict: {columns_number: {current_values_in_that_column}, ...} - current values in every column
+    squares:
+        defaultdict: {square_number: {current_values_in_that_square}, ...} - current values in every square
     unchangeable:
-        set: set which contain all positions with fixed board numbers (clues or values found by algorithm)
+       set: {(x, y), ... } set which contain all positions with fixed board numbers (clues or values found by algorithm)
     board:
-        list: list representation of current board state (list index = position of cell). 0 = empty cell
+        nested list: [[value1, value2, ...], ...]representation of current board state (list index = position of cell).
+        value = 0 -> empty cell
     """
-    board_map = None
-    squares = [
-        (0, 31), (9, 31), (18, 31), (1, 31), (10, 31), (19, 31), (2, 31), (11, 31), (20, 31), (3, 32), (12, 32),
-        (21, 32), (4, 32), (13, 32), (22, 32), (5, 32), (14, 32), (23, 32), (6, 33), (15, 33), (24, 33), (7, 33),
-        (16, 33), (25, 33), (8, 33), (17, 33), (26, 33), (27, 34), (36, 34), (45, 34), (28, 34), (37, 34), (46, 34),
-        (29, 34), (38, 34), (47, 34), (30, 35), (39, 35), (48, 35), (31, 35), (40, 35), (49, 35), (32, 35), (41, 35),
-        (50, 35), (33, 36), (42, 36), (51, 36), (34, 36), (43, 36), (52, 36), (35, 36), (44, 36), (53, 36), (54, 37),
-        (63, 37), (72, 37), (55, 37), (64, 37), (73, 37), (56, 37), (65, 37), (74, 37), (57, 38), (66, 38), (75, 38),
-        (58, 38), (67, 38), (76, 38), (59, 38), (68, 38), (77, 38), (60, 39), (69, 39), (78, 39), (61, 39), (70, 39),
-        (79, 39), (62, 39), (71, 39), (80, 39)
-    ]
-    pos_map = {
-        0: [11, 21, 31], 1: [11, 22, 31], 2: [11, 23, 31], 3: [11, 24, 32], 4: [11, 25, 32], 5: [11, 26, 32],
-        6: [11, 27, 33], 7: [11, 28, 33], 8: [11, 29, 33], 9: [12, 21, 31], 10: [12, 22, 31], 11: [12, 23, 31],
-        12: [12, 24, 32], 13: [12, 25, 32], 14: [12, 26, 32], 15: [12, 27, 33], 16: [12, 28, 33], 17: [12, 29, 33],
-        18: [13, 21, 31], 19: [13, 22, 31], 20: [13, 23, 31], 21: [13, 24, 32], 22: [13, 25, 32], 23: [13, 26, 32],
-        24: [13, 27, 33], 25: [13, 28, 33], 26: [13, 29, 33], 27: [14, 21, 34], 28: [14, 22, 34], 29: [14, 23, 34],
-        30: [14, 24, 35], 31: [14, 25, 35], 32: [14, 26, 35], 33: [14, 27, 36], 34: [14, 28, 36], 35: [14, 29, 36],
-        36: [15, 21, 34], 37: [15, 22, 34], 38: [15, 23, 34], 39: [15, 24, 35], 40: [15, 25, 35], 41: [15, 26, 35],
-        42: [15, 27, 36], 43: [15, 28, 36], 44: [15, 29, 36], 45: [16, 21, 34], 46: [16, 22, 34], 47: [16, 23, 34],
-        48: [16, 24, 35], 49: [16, 25, 35], 50: [16, 26, 35], 51: [16, 27, 36], 52: [16, 28, 36], 53: [16, 29, 36],
-        54: [17, 21, 37], 55: [17, 22, 37], 56: [17, 23, 37], 57: [17, 24, 38], 58: [17, 25, 38], 59: [17, 26, 38],
-        60: [17, 27, 39], 61: [17, 28, 39], 62: [17, 29, 39], 63: [18, 21, 37], 64: [18, 22, 37], 65: [18, 23, 37],
-        66: [18, 24, 38], 67: [18, 25, 38], 68: [18, 26, 38], 69: [18, 27, 39], 70: [18, 28, 39], 71: [18, 29, 39],
-        72: [19, 21, 37], 73: [19, 22, 37], 74: [19, 23, 37], 75: [19, 24, 38], 76: [19, 25, 38], 77: [19, 26, 38],
-        78: [19, 27, 39], 79: [19, 28, 39], 80: [19, 29, 39]
-    }
+    square_map: Dict[Tuple[int, int], int] = {}
+    rows: DefaultDict[int, set] = defaultdict(set)
+    columns: DefaultDict[int, set] = defaultdict(set)
+    squares: DefaultDict[int, set] = defaultdict(set)
+    unchangeable: Set[Tuple[int, int]] = set()
+    board: List[List[int]] = None
 
-    unchangeable = None  # set of indexes of unchangeable cells
-    board = None  # current board. List of int representation of every cell, 0 = empty cell
-    # show = []  # [[pos, value, cordA, cord1], ...]
-    # s = {11: "A", 12: "B", 13: "C", 14: "D", 15: "E", 16: "F", 17: "G", 18: "H", 19: "I"}
+    for y in range(Settings.row_number):
+        for x in range(Settings.column_number):
+            if x <= 2 and y <= 2:
+                square_map[(x, y)] = 0
+            elif 5 >= x > 2 >= y:
+                square_map[(x, y)] = 1
+            elif 5 < x <= 8 and y <= 2:
+                square_map[(x, y)] = 2
+            elif x <= 2 < y <= 5:
+                square_map[(x, y)] = 3
+            elif 2 < x <= 5 and 2 < y <= 5:
+                square_map[(x, y)] = 4
+            elif 8 >= x > 5 >= y > 2:
+                square_map[(x, y)] = 5
+            elif x <= 2 and 5 < y <= 8:
+                square_map[(x, y)] = 6
+            elif 2 < x <= 5 < y <= 8:
+                square_map[(x, y)] = 7
+            elif 5 < x <= 8 and 5 < y <= 8:
+                square_map[(x, y)] = 8
 
-    def __init__(self, board=None, standalone=True):
-        """creation of class variables
+    @abstractmethod
+    def __init__(self, board: List[List[int]] = None, solver: 'SolverWithMarkup' = None):
+        """creation of class attributes
         :param board: initial board state
-        :param standalone: False if its not necessary to fill class variables
+        :param solver: if None attributes are initialized. If not None attributes of passed solver are used
         """
         if board is None:
             board = []
-        if standalone is False:
+        if solver is not None:
+            self.square_map = solver.square_map
+            self.squares = solver.squares
+            self.rows = solver.rows
+            self.columns = solver.columns
+            self.unchangeable = solver.unchangeable
+            self.board = solver.board
             return
 
         self.board = board
+        self.squares = defaultdict(set)
+        self.rows = defaultdict(set)
+        self.columns = defaultdict(set)
+        self.unchangeable = set()
 
-        # board_map creation
-        self.board_map = {
-            11: {board[i] for i in range(9)},
-            12: {board[i] for i in range(9, 18)},
-            13: {board[i] for i in range(18, 27)},
-            14: {board[i] for i in range(27, 36)},
-            15: {board[i] for i in range(36, 45)},
-            16: {board[i] for i in range(45, 54)},
-            17: {board[i] for i in range(54, 63)},
-            18: {board[i] for i in range(63, 72)},
-            19: {board[i] for i in range(72, 81)},
+        for y, row in enumerate(self.board):
+            for x, cell in enumerate(row):
+                if cell != 0:
+                    self.unchangeable.add((x, y))
+                self.squares[self.square_map[(x, y)]].add(cell)
+                self.rows[y].add(cell)
+                self.columns[x].add(cell)
+        self.square_map = dict(sorted(self.square_map.items(), key=lambda sq_number: sq_number[1]))
 
-            21: {board[i] for i in range(0, 73, 9)},
-            22: {board[i] for i in range(1, 74, 9)},
-            23: {board[i] for i in range(2, 75, 9)},
-            24: {board[i] for i in range(3, 76, 9)},
-            25: {board[i] for i in range(4, 77, 9)},
-            26: {board[i] for i in range(5, 78, 9)},
-            27: {board[i] for i in range(6, 79, 9)},
-            28: {board[i] for i in range(7, 80, 9)},
-            29: {board[i] for i in range(8, 81, 9)},
-
-            31: {board[i] for i in (0, 1, 2, 9, 10, 11, 18, 19, 20)},
-            32: {board[i] for i in (3, 4, 5, 12, 13, 14, 21, 22, 23)},
-            33: {board[i] for i in (6, 7, 8, 15, 16, 17, 24, 25, 26)},
-            34: {board[i] for i in (27, 28, 29, 36, 37, 38, 45, 46, 47)},
-            35: {board[i] for i in (30, 31, 32, 39, 40, 41, 48, 49, 50)},
-            36: {board[i] for i in (33, 34, 35, 42, 43, 44, 51, 52, 53)},
-            37: {board[i] for i in (54, 55, 56, 63, 64, 65, 72, 73, 74)},
-            38: {board[i] for i in (57, 58, 59, 66, 67, 68, 75, 76, 77)},
-            39: {board[i] for i in (60, 61, 62, 69, 70, 71, 78, 79, 80)}
-        }
-
-        # set of unchangeable positions
-        self.unchangeable = {i for i in range(81) if board[i] != 0}
-
-    def remove(self, value, pos):
-        """remove value from board_map
+    def remove(self, value: int, x: int, y: int):
+        """remove value from rows, columns and squares sets
         :param value: removed value
-        :param pos: from position
-        """
-        self.board_map[self.pos_map[pos][0]].remove(value)
-        self.board_map[self.pos_map[pos][1]].remove(value)
-        self.board_map[self.pos_map[pos][2]].remove(value)
+        :param x: column number
+        :param y: row number"""
+        self.squares[self.square_map[(x, y)]].remove(value)
+        self.columns[x].remove(value)
+        self.rows[y].remove(value)
 
-    def update(self, value, pos):
-        """add value to board_map
-        :param value: add value
-        :param pos: to position
-        """
-        self.board_map[self.pos_map[pos][0]].add(value)
-        self.board_map[self.pos_map[pos][1]].add(value)
-        self.board_map[self.pos_map[pos][2]].add(value)
-        # self.show.append([pos, value, self.s[self.pos_map[pos][0]], self.pos_map[pos][1] - 20])
+    def update(self, value: int, x: int, y: int):
+        """add value to rows, columns and squares sets
+        :param value: removed value
+        :param x: column number
+        :param y: row number"""
+        self.squares[self.square_map[(x, y)]].add(value)
+        self.columns[x].add(value)
+        self.rows[y].add(value)
 
-    def check_move(self, value, pos):
-        """Check if set number 'value' in position 'pos' is valid move
-        :returns: True if move is valid, otherwise False"""
+    def check_move(self, value: int, x: int, y: int):
+        """Check if assignment number to position is valid move
+        :param value: evaluated value
+        :param x: evaluated coordinate x
+        :param y: evaluated coordinate y
+        :return: True if move is valid, otherwise False"""
         if (
-                value not in self.board_map[self.pos_map[pos][0]]
-                and value not in self.board_map[self.pos_map[pos][1]]
-                and value not in self.board_map[self.pos_map[pos][2]]):
-
+            value not in self.rows[y]
+            and value not in self.columns[x]
+            and value not in self.squares[self.square_map[(x, y)]]
+        ):
             return True
         else:
             return False
 
+    def find_empty_cell(self, x: int, y: int, back: bool) -> Tuple[int, int, bool]:
+        """find next empty cell
+        :param x: starting coordinate x
+        :param y: starting coordinate y
+        :param back: True if going backward, False if going forward
+        :return: coordinates of next empty cell"""
+        while True:
+            if (x, y) in self.unchangeable and back is False:
+                x, y = self.move_forward(x, y)
+            elif (x, y) in self.unchangeable and back is True:
+                x, y = self.move_backward(x, y)
+            elif back is True:
+                self.remove(self.board[y][x], x, y)
+                self.board[y][x] += 1
+                break
+            else:
+                if x == 0 and y == 9:
+                    break
+                back = True
+                self.board[y][x] = 1
+                break
+        return x, y, back
 
-class BruteForce(Parent):
+    def move_forward(self, x: int, y: int) -> Tuple[int, int]:
+        """change current position to next one
+        :param x: current coordinate x
+        :param y: current coordinate y
+        :return: coordinates of new position"""
+        if x < 8:
+            x += 1
+        else:
+            x = 0
+            y += 1
+        return x, y
+
+    def move_backward(self, x: int, y: int) -> Tuple[int, int]:
+        """change current position to previous one
+        :param x: current coordinate x
+        :param y: current coordinate y
+        :return: coordinates of new position"""
+        if x != 0:
+            x -= 1
+        else:
+            x = 8
+            y -= 1
+        return x, y
+
+
+class BruteForce(Interface):
     """Bruteforce with backtracking. Check every state of board until find correct one. Each cell is tested for a valid
      number, moving "back" when there is a violation, and moving forward if not, until the puzzle is solved."""
 
-    def start(self):
+    def __init__(self, board: List[List[int]] = None, solver: 'SolverWithMarkup' = None):
+        """
+        :param board: initial board state
+        :param solver: if None attributes are initialized. If not None attributes of passed solver are used"""
+        super().__init__(board=board, solver=solver)
+
+    def solve(self) -> List[List[int]]:
         """run bruteforce algorithm
         :return: solved board"""
-        pos = 0
-        back = False
+        end_point = Settings.row_number
+        x, y = 0, 0
+        back = False  # False - move forward, True - move backward
 
         while True:
-            # find empty position
-            while True:
-                if pos in self.unchangeable and back is False:
-                    pos += 1
-                elif pos in self.unchangeable and back is True:
-                    pos -= 1
-                elif back is True:
-                    self.remove(self.board[pos], pos)
-                    self.board[pos] += 1
-                    break
-                else:
-                    if pos == 81:
-                        break
-                    back = True
-                    self.board[pos] = 1
-                    break
+            x, y, back = self.find_empty_cell(x, y, back)
 
-            if pos == 81:
+            if x == 0 and y == end_point:
                 break
 
             # check if any number fit at position
-            for _ in range(10 - self.board[pos]):
-                if self.check_move(self.board[pos], pos):
-                    self.update(self.board[pos], pos)
-                    pos += 1
+            for _ in range(10 - self.board[y][x]):
+                if self.check_move(self.board[y][x], x, y):
+                    self.update(self.board[y][x], x, y)
+                    x, y = self.move_forward(x, y)
                     back = False
                     break
                 else:
-                    self.board[pos] += 1
+                    self.board[y][x] += 1
             else:
-                # if not vaild number at pos go back
-                self.board[pos] = 0
-                pos -= 1
+                # if no valid number at pos go back
+                self.board[y][x] = 0
+                x, y = self.move_backward(x, y)
 
         return self.board
 
 
-class SmartSolver(Parent):
-    """Fill part of the board (or whole in easier puzzles) using James Crook algorithm and fill rest using bruteforce
-    (less_brutal method), or complete whole puzzle using mentioned algorithm (smart_solution method).
-        markup: possible values of cell
-            dict:
-                key = position of empty cell
-                value = set of possible digits in that cell
-        again: True if state of the board change in current check
-    """
-    markup = {}
-    again = False
+class SolverWithMarkup(Interface):
+    """Base class for algorithms using markup
+    markup:
+        dict: {(x, y): {values_possible_in_that_cell}, ...} set of values possible at position (x, y)
+    again:
+        bool: If state of the board change during check repeat checks"""
+    markup: Dict[Tuple[int, int], Set[int]] = {}
+    again: bool = False
 
-    def __init__(self, board):
+    def __init__(self, board: List[List[int]]):
+        """:param board: initial board state"""
         super().__init__(board)
         self.create_markup()
 
-    def less_brutal(self):
+    def checks(self):
+        """search for unique values in rows, columns and squares. If True, set found value in cell
+        and update board state"""
+        self.check_row()
+        self.check_column()
+        self.check_square()
+
+    def check_row(self):
+        """search for unique possible value in every rows markup"""
+        for y, row in enumerate(self.board):
+            unique_row_values = set()
+            unique_positions = {}
+            for x, cell in enumerate(row):
+
+                if (x, y) not in self.unchangeable:
+                    for element in self.markup[(x, y)]:
+                        if element not in unique_row_values:
+                            unique_row_values.add(element)
+                            unique_positions[element] = (x, y)
+                        else:
+                            unique_positions[element] = -1
+            self.unique_positions_check(unique_positions)
+
+    def check_column(self):
+        """search for unique possible value in every columns markup"""
+        for x in range(Settings.column_number):
+            unique_col_values = set()
+            unique_positions = {}
+            for y in range(Settings.row_number):
+
+                if (x, y) not in self.unchangeable:
+                    for element in self.markup[(x, y)]:
+                        if element not in unique_col_values:
+                            unique_col_values.add(element)
+                            unique_positions[element] = (x, y)
+                        else:
+                            unique_positions[element] = -1
+            self.unique_positions_check(unique_positions)
+
+    def check_square(self):
+        """search for unique possible value in every squares markup"""
+        for position, square in self.square_map.items():
+            square_counter = 0
+            unique_square_values = set()
+            unique_positions = {}
+            if position not in self.unchangeable:
+                for element in self.markup[position]:
+                    if element not in unique_square_values:
+                        unique_square_values.add(element)
+                        unique_positions[element] = position
+                    else:
+                        unique_positions[element] = -1
+
+            if square_counter == 8:
+                self.unique_positions_check(unique_positions)
+
+            else:
+                square_counter += 1
+
+    def unique_positions_check(self, position_list: Dict):
+        """Check if position_list contain unique positions (positions with only 1 possible value). If so, set unique
+        position to this value.
+        :param position_list: dict: {value: (x, y)} - if position is unique, {value: -1} if possition is not unique"""
+        for value, position in position_list.items():
+            if position != -1:
+                self.board[position[1]][position[0]] = value
+                self.unchangeable.add(position)
+                self.update(value, position[0], position[1])
+                self.again = True
+        self.update_markup()
+
+    def create_markup(self):
+        """create markup - set of values that are possible in cell with coordinates (x, y) - and save it in class
+        atribute. If only 1 value is valid set cell to this value, update unchangeable cells set and set
+        self.board to new state.
+        """
+        self.markup = {}
+        while True:
+            any_cell_changed = False
+            for y, row in enumerate(self.board):
+                for x, cell in enumerate(row):
+                    if cell == 0:
+                        valid_values = []
+                        for i in range(1, 10):
+                            if self.check_move(i, x, y) is True:
+                                valid_values.append(i)
+                        if len(valid_values) == 1:
+                            self.board[y][x] = valid_values[0]
+                            self.unchangeable.add((x, y))
+                            any_cell_changed = True
+                            self.update(self.board[y][x], x, y)
+                        else:
+                            self.markup[(x, y)] = set(valid_values)
+
+            if any_cell_changed is False:
+                break
+
+    def update_markup(self):
+        """update self.markup after inserting value to cell. Check only values from actual cell markup."""
+        self.markup = {}
+
+        for y, row in enumerate(self.board):
+            for x, cell in enumerate(row):
+
+                if cell == 0:
+                    valid_values = []
+                    for i in range(1, 10):
+                        if self.check_move(i, x, y) is True:
+                            valid_values.append(i)
+
+                        self.markup[(x, y)] = set(valid_values)
+
+
+class CombinedSolver(SolverWithMarkup):
+    """Fill part of the board (or whole in easier puzzles) using James Crook algorithm and fill rest using bruteforce.
+    """
+    def solve(self) -> List[List[int]]:
         """
         Fill part of the board (or whole in easier puzzles) using James Crook algorithm and fill rest using bruteforce
         :return: solved board
         """
-        # if board is full after
-        if len(self.unchangeable) == 81:
+        if len(self.unchangeable) == Settings.column_number:
             return self.board
 
         while True:
             self.again = False
-            self.check_row()
-            self.check_col()
-            self.check_square()
+            self.checks()
 
             if self.again is False:
                 break
 
-        # if game is not finished solve it with bruteforce (much faster now because of extra clues)
-        if len(self.unchangeable) != 81:
-            solver = BruteForce(standalone=False)
-
-            solver.board = self.board
-            solver.unchangeable = self.unchangeable
-            solver.board_map = self.board_map
-
-            self.board = solver.start()
+        # if game is not finished finish it with bruteforce (much faster now because of extra clues)
+        if len(self.unchangeable) != Settings.column_number:
+            solver = BruteForce(solver=self)
+            self.board = solver.solve()
 
         return self.board
 
-    def smart_solution(self):
+
+class SmartSolver(SolverWithMarkup):
+    """complete whole puzzle using James Crook algorithm"""
+    def solve(self) -> List[List[int]]:
         """complete whole puzzle using James Crook algorithm"""
-        pos = 0
-        # if board is full return it
-        if len(self.unchangeable) == 81:
+        if len(self.unchangeable) == Settings.cell_number:
             return self.board
 
-        # if there arent any possible move make copy of board state and check random number from markup
-        temp_board = copy(self.board)
-        temp_unch = copy(self.unchangeable)
-        temp_boardmap = pickle.dumps(self.board_map)
+        board_copy = self.save_board_state()
 
-        # select empty cell
-        for i, value in enumerate(self.board):
-            if value == 0:
-                pos = i
-                break
+        for y, row in enumerate(self.board):
+            for x, cell in enumerate(row):
+                if cell == 0:
+                    pos = (x, y)
+                    break
+            else:
+                continue
+            break
 
-        # choose number from selected cells markup
         for markup in self.markup[pos]:
-            self.board[pos] = markup
+            self.board[pos[1]][pos[0]] = markup
             self.unchangeable.add(pos)
-            self.update(markup, pos)
+            self.update(markup, pos[0], pos[1])
             self.create_markup()
 
             # perform checks
@@ -254,154 +385,46 @@ class SmartSolver(Parent):
                 self.again = False
                 self.checks()
                 if not all(self.markup.values()):  # if any cell markup is empty selected number is not correct
-                    flag = False
+                    correct = False
                     break
                 if self.again is False:
-                    flag = True
+                    correct = True
                     break
 
             # if chosen number is correct and there are still empty cells
-            if flag is True:
+            if correct is True:
                 solver = SmartSolver(self.board)
-                self.board = solver.smart_solution()
-                if len(solver.unchangeable) == 81:  # if puzzle finished
+                self.board = solver.solve()
+                if len(solver.unchangeable) == Settings.cell_number:  # if puzzle finished
                     self.unchangeable = solver.unchangeable
                     return self.board
                 else:  # if not finished restore board
-                    self.board = copy(temp_board)
-                    self.unchangeable = copy(temp_unch)
-                    self.board_map = pickle.loads(temp_boardmap)
-                    self.create_markup()
+                    self.load_board_state(board_copy)
 
             else:  # if not finished restore board
-                self.board = copy(temp_board)
-                self.unchangeable = copy(temp_unch)
-                self.board_map = pickle.loads(temp_boardmap)
-                self.create_markup()
+                self.load_board_state(board_copy)
 
         return self.board
 
-    def checks(self):
-        """search for unique values in rows, columns and squares. If True, set found value in cell
-        and update board state"""
-        self.check_row()
-        self.check_col()
-        self.check_square()
+    def save_board_state(self) -> List[Any]:
+        """Save current board state
+        :return: list with saved attributes: [board, unchangable, rows, columns, squares, markup]"""
+        temp_board = pickle.dumps(self.board)
+        temp_unch = copy(self.unchangeable)
+        temp_rows = pickle.dumps(self.rows)
+        temp_columns = pickle.dumps(self.columns)
+        temp_squares = pickle.dumps(self.squares)
+        temp_markup = pickle.dumps(self.markup)
 
-    def check_row(self):
-        """search for unique possible value in every rows markup"""
-        pos = 0
-        for row in range(9):
-            unique = set()  # values uniqe for the row
-            where = {}  # possible value: pos. If pos == -1 > value not uniqe in this row
-            for cell in range(9):
-                if pos not in self.unchangeable:
-                    for element in self.markup[pos]:
-                        if element not in unique:
-                            unique.add(element)
-                            where[element] = pos
-                        else:
-                            where[element] = -1
-                pos += 1
+        return [temp_board, temp_unch, temp_rows, temp_columns, temp_squares, temp_markup]
 
-            for value, position in where.items():
-                if position != -1:
-                    self.board[position] = value
-                    self.unchangeable.add(position)
-                    self.update(value, position)
-                    self.again = True
+    def load_board_state(self, saved_copy: List[Any]):
+        """Restore board state from save
+        :param saved_copy: list of saved attributes: [board, unchangable, rows, columns, squares, markup]"""
 
-            self.update_markup()
-
-    def check_col(self):
-        """search for unique possible value in every cols markup"""
-        pos = 0
-        for row in range(9):
-            unique = set()  # values uniqe for the row
-            where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
-            for cell in range(9):
-                if pos not in self.unchangeable:
-                    for element in self.markup[pos]:
-                        if element not in unique:
-                            unique.add(element)
-                            where[element] = pos
-                        else:
-                            where[element] = -1
-
-                pos += 9
-            for value, position in where.items():
-                if position != -1:
-                    self.board[position] = value
-                    self.unchangeable.add(position)
-                    self.update(value, position)
-                    self.again = True
-            pos -= 80
-            self.update_markup()
-
-    def check_square(self):
-        """search for unique possible value in every squares markup"""
-        square_counter = 0
-        unique = set()  # values uniqe for the row
-        where = {}  # possible value: pos. If pos == -1 > value not uniqe in this col
-        for pos, square in self.squares:
-            if pos not in self.unchangeable:
-                for element in self.markup[pos]:
-                    if element not in unique:
-                        unique.add(element)
-                        where[element] = pos
-                    else:
-                        where[element] = -1
-            if square_counter == 8:
-                for value, position in where.items():
-                    if position != -1:
-                        self.board[position] = value
-                        self.unchangeable.add(position)
-                        self.update(value, position)
-                        self.again = True
-                self.update_markup()
-                square_counter = 0
-                unique = set()
-                where = {}
-            else:
-                square_counter += 1
-
-    def create_markup(self):
-        """fill self.markup dict: key = position of empty cell (0 - 80), value = set of possible values at this position
-        based on filled cells. If only 1 value is valid set cell to this value, update unchangeable cells set and set
-        self.board to new state.
-        """
-        self.markup = {}
-        while True:
-            any_cell_changed = False
-            for pos, cell in enumerate(self.board):
-
-                if cell == 0:
-                    vaild_values = []
-                    for i in range(1, 10):
-                        if self.check_move(i, pos) is True:
-                            vaild_values.append(i)
-                    if len(vaild_values) == 1:
-                        self.board[pos] = vaild_values[0]
-                        self.unchangeable.add(pos)
-                        any_cell_changed = True
-                        self.update(self.board[pos], pos)
-
-                    else:
-                        self.markup[pos] = set(vaild_values)
-
-            if any_cell_changed is False:
-                break
-
-    def update_markup(self):
-        """update self.markup after inserting value to cell. Check only values for actual cell markup."""
-        self.markup = {}
-
-        for pos, cell in enumerate(self.board):
-
-            if cell == 0:
-                vaild_values = []
-                for i in range(1, 10):
-                    if self.check_move(i, pos) is True:
-                        vaild_values.append(i)
-
-                    self.markup[pos] = set(vaild_values)
+        self.board = pickle.loads(saved_copy[0])
+        self.unchangeable = copy(saved_copy[1])
+        self.rows = pickle.loads(saved_copy[2])
+        self.columns = pickle.loads(saved_copy[3])
+        self.squares = pickle.loads(saved_copy[4])
+        self.markup = pickle.loads(saved_copy[5])
