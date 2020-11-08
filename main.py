@@ -174,6 +174,7 @@ def start_here():
         game.smart_solution()
 
     stop = time.time()
+
     game.draw()
     print(f"complete in {stop - start} sec")
 
